@@ -33,17 +33,20 @@ if df.empty:
 with st.sidebar:
     st.header("Filters")
 
-    sentiments = ["All"] + sorted(df["sentiment"].dropna().unique().tolist())
-    selected_sentiment = st.selectbox("Sentiment", sentiments)
+# === Sidebar filters ===
+st.sidebar.header("🔎 Filters")
 
-    workstreams = ["All"] + sorted(df["workstreams"].dropna().unique().tolist())
-    selected_workstream = st.selectbox("Workstream", workstreams)
+economies = ["All"] + sorted(df["economy"].dropna().unique().tolist())
+selected_economy = st.sidebar.selectbox("Filter by Economy", economies)
 
-    alignments = ["All"] + sorted(df["aligned_with_us"].dropna().unique().tolist())
-    selected_alignment = st.selectbox("Aligned with U.S.", alignments)
+workstreams = ["All"] + sorted(df["workstreams"].dropna().unique().tolist())
+selected_workstream = st.sidebar.selectbox("Filter by Workstream", workstreams)
 
-    source_types = ["All"] + sorted(df["source_type"].dropna().unique().tolist())
-    selected_type = st.selectbox("Source Type", source_types)
+sentiments = ["All"] + sorted(df["sentiment"].dropna().unique().tolist())
+selected_sentiment = st.sidebar.selectbox("Filter by Sentiment", sentiments)
+
+source_types = ["All"] + sorted(df["source_type"].dropna().unique().tolist())
+selected_source_type = st.sidebar.selectbox("Filter by Source Type", source_types).
 
     # ✅ Static list of all APEC economies
    APEC_ECONOMIES = {
@@ -72,31 +75,27 @@ with st.sidebar:
     economies = ["All"] + apec_economies
     selected_economy = st.selectbox("Economy", economies)
 
-# === Apply Filters ===
+# === Apply filters ===
 filtered_df = df.copy()
-
-if selected_sentiment != "All":
-    filtered_df = filtered_df[filtered_df["sentiment"] == selected_sentiment]
-
-if selected_workstream != "All":
-    filtered_df = filtered_df[filtered_df["workstreams"].str.contains(selected_workstream, na=False)]
-
-if selected_alignment != "All":
-    filtered_df = filtered_df[filtered_df["aligned_with_us"] == selected_alignment]
-
-if selected_type != "All":
-    filtered_df = filtered_df[filtered_df["source_type"] == selected_type]
-
 if selected_economy != "All":
     filtered_df = filtered_df[filtered_df["economy"] == selected_economy]
-
-# === Display Results ===
-st.markdown(f"### Showing {len(filtered_df)} article(s)")
-
+if selected_workstream != "All":
+    filtered_df = filtered_df[filtered_df["workstreams"].str.contains(selected_workstream)]
+if selected_sentiment != "All":
+    filtered_df = filtered_df[filtered_df["sentiment"] == selected_sentiment]
+if selected_source_type != "All":
+    filtered_df = filtered_df[filtered_df["source_type"] == selected_source_type]
+# === Show results ===
+st.markdown(f"### Showing {len(filtered_df)} of {len(df)} articles")
 for _, row in filtered_df.iterrows():
-    st.markdown(f"#### [{row['title']}]({row['link']})")
-    st.markdown(f"**Source**: {row['source']} | **Published**: {row['published']}")
-    st.markdown(f"**Economy**: {row['economy']} | **Sentiment**: {row['sentiment']} | **Workstreams**: {row['workstreams']} | **Alignment**: {row['aligned_with_us']} | **Type**: {row['source_type']}")
-    st.markdown(f"{row['summary']}")
-    st.markdown("---")
-
+    st.markdown(f"""
+    #### [{row['title']}]({row['link']})
+    🗓️ {row['published']}  
+    🌐 **Economy**: {row['economy']}  
+    🧭 **Workstreams**: {row['workstreams']}  
+    📊 **Sentiment**: {row['sentiment']}  
+    📰 **Source**: {row['source']} ({row['source_type']})  
+    
+    > {row['summary']}
+    ---
+    """)
