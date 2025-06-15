@@ -111,11 +111,9 @@ def detect_alignment(text):
 
 def detect_economy(text):
     txt_lower = text.lower()
-    # 1. check for capitals/major cities
     for city, eco in CAPITAL_TO_ECONOMY.items():
         if city in txt_lower:
             return eco
-    # 2. fallback to spaCy NER + APEC list
     doc = nlp(text)
     for ent in doc.ents:
         if ent.label_ == "GPE":
@@ -124,12 +122,11 @@ def detect_economy(text):
                     return eco
     return "Unknown"
 
-# === Main extraction ===
 articles = []
 for source, url in rss_feeds.items():
     feed = feedparser.parse(url)
     for entry in feed.entries:
-        title   = entry.get("title", "").strip()
+        title = entry.get("title", "").strip()
         summary = entry.get("summary", "").strip()
         if not (title or summary):
             continue
@@ -147,8 +144,52 @@ for source, url in rss_feeds.items():
             "economy": detect_economy(content),
             "timestamp": datetime.utcnow().isoformat()
         })
-# === Write JSON ===
+
+# Write JSON file
 with open("data/processed_articles.json", "w", encoding="utf-8") as f:
     json.dump(articles, f, indent=2, ensure_ascii=False)
 
 print(f"✅ {len(articles)} articles written to data/processed_articles.json")
+
+# === Risk Signal Aggregation for Scenario Simulator ===
+risk_summary = defaultdict(lambda: {"score": 0, "justification": []})
+for article in articles:
+    econ = article["economy"]
+    ws = article["workstreams"]
+    if econ == "Unknown" or ws == "Uncategorized":
+        continue
+    for w in [w.strip() for w in ws.split(",")]:
+        key = (econ, w)
+        sentiment = article["sentiment"]
+        alignment = article["aligned_with_us"]
+        if sentiment == "Negative":
+            risk_summary[key]["score"] -= 1
+            risk_summary[key]["justification"].append("Negative sentiment")
+        elif sentiment == "Positive":
+            risk_summary[key]["score"] += 1
+            risk_summary[key]["justification"].append("Positive sentiment")
+        if alignment == "No":
+            risk_summary[key]["score"] -= 1
+            risk_summary[key]["justification"].append("Misalignment with U.S.")
+        elif alignment == "Yes":
+            risk_summary[key]["score"] += 1
+            risk_summary[key]["justification"].append("U.S. cooperation")
+
+records = []
+for (eco, ws), data in risk_summary.items():
+    score = data["score"]
+    scenario = "Baseline"
+    if score <= -2:
+        scenario = "Pessimistic"
+    elif score >= 2:
+        scenario = "Optimistic"
+    records.append({
+        "Economy": eco,
+        "Workstream": ws,
+        "Scenario": scenario,
+        "Justification": "; ".join(data["justification"])
+    })
+
+pd.DataFrame(records).to_csv("data/risk_signals.csv", index=False)
+print("✅ risk_signals.csv written for scenario simulator.")
+
