@@ -81,13 +81,15 @@ WORKSTREAM_KEYWORDS = {
 
 ALIGNMENT_PHRASES = [
     "support from u.s.", "technical assistance", "aligned with apec goals",
-    "strategic alignment", "bilateral cooperation", "u.s.-backed", "u.s.-supported"
+    "strategic alignment", "bilateral cooperation", "u.s.-backed", "u.s.-supported",
+    "partnership with the u.s.", "cooperation with the united states",
+    "engagement with the united states", "funded by the united states"
 ]
 
-# Phrases indicating explicit non-alignment
 NON_ALIGNMENT_PHRASES = [
     "not aligned", "no alignment", "not support", "no support",
-    "without support", "not backed", "not supported"
+    "without support", "not backed", "not supported", "disengaged from the united states",
+    "opposed by the u.s.", "rejected by the u.s."
 ]
 
 def detect_sentiment(text):
