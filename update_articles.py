@@ -69,4 +69,58 @@ WORKSTREAM_KEYWORDS = {
     "Supply Chain Connectivity": ["supply chain", "logistics", "port", "shipping"],
     "Water Quality": ["water quality", "wastewater", "pollution", "sanitation"],
     "Technical Barriers to Trade": ["standards", "tbt", "technical regulation", "certification"],
-    "Emerging Technology Standards": ["ai standards", "emerging technology", "artificial
+    "Emerging Technology Standards": ["ai standards", "emerging technology", "artificial intelligence"],
+    "Free Trade Area of the Asia-Pacific": ["ftaap", "free trade agreement", "regional integration"],
+    "Services": ["services trade", "professional services", "mobility of professionals"],
+    "Trade Policy": ["trade facilitation", "tariff", "wto", "rcep"]
+}
+
+# === Helper function to tag articles ===
+def tag_workstreams(summary):
+    matched = set()
+    summary_lower = summary.lower()
+    for theme, keywords in tag_rules.items():
+        for keyword in keywords:
+            if keyword in summary_lower:
+                matched.add(theme)
+    return list(matched) if matched else ["Uncategorized"]
+
+# === Load previously processed articles ===
+processed_path = "data/processed_articles.json"
+if os.path.exists(processed_path):
+    with open(processed_path, "r", encoding="utf-8") as f:
+        existing_articles = json.load(f)
+    existing_links = {a["link"] for a in existing_articles}
+else:
+    existing_articles = []
+    existing_links = set()
+
+# === Parse feeds ===
+new_articles = []
+for url in feeds:
+    feed = feedparser.parse(url)
+    for entry in feed.entries:
+        if entry.link in existing_links:
+            continue
+        article = {
+            "title": entry.title,
+            "link": entry.link,
+            "published": entry.get("published", datetime.utcnow().isoformat()),
+            "summary": entry.get("summary", ""),
+            "source": feed.feed.get("title", "Unknown"),
+            "source_type": "media",
+            "sentiment": "Neutral",  # Optional: add real sentiment analysis
+            "workstreams": ", ".join(tag_workstreams(entry.get("summary", ""))),
+            "aligned_with_us": "Unclear",  # Optional: NLP alignment analysis
+            "economy": "Unknown",  # Optional: named entity recognition
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        new_articles.append(article)
+
+# === Merge and save ===
+all_articles = new_articles + existing_articles
+with open(processed_path, "w", encoding="utf-8") as f:
+    json.dump(all_articles, f, ensure_ascii=False, indent=2)
+
+print(f"✅ Added {len(new_articles)} new articles. Total: {len(all_articles)} saved in {processed_path}")
+
